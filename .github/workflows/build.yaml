@@ -1,0 +1,29 @@
+name: prerelease build
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'git ref'
+        required: true
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.inputs.ref }}
+          repository: Awesome-Technologies/synapse-admin
+      - env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -ex
+          env | sort
+          yarnpkg install
+          yarnpkg build
+          BUILD="synapse-admin-${{ github.event.inputs.ref }}"
+          mv build "$BUILD"
+          tar zcf "$BUILD.tgz" "$BUILD"
+          hub remote -v
+          hub remote set-url origin $GITHUB_REPOSITORY
+          hub release create -m "$BUILD" -p -a $BUILD.tgz "$BUILD"
